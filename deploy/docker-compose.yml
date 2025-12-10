@@ -1,0 +1,45 @@
+services:
+
+    subscription-management-db:
+        container_name: ${DB_SERVICE_NAME}
+        image: ${DB_REGISTRY_IMAGE}
+        restart: always
+        ports:
+            - 6401:5432
+        environment:
+            - POSTGRES_DB=${POSTGRES_DB}
+            - POSTGRES_USER=${POSTGRES_USER}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        networks:
+            - minux_network
+        volumes:
+            - subscription-management-db:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+
+    subscription-management:
+        container_name: ${ServiceName}
+        image: ${APP_REGISTRY_IMAGE}
+        restart: 'always'
+        environment:
+            - ASPNETCORE_URLS=http://+:80
+        env_file:
+            - ${COMMON_ENV_FILE}
+            - ${PROJECT_ENV_FILE}
+        networks:
+            - minux_network
+        depends_on:
+            subscription-management-db:
+                condition: service_healthy
+
+volumes:
+  subscription-management-db:
+
+networks:
+  minux_network:
+    name: minux_network
+    external: true

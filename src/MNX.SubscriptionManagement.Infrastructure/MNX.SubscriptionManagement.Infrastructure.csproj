@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EasyNetQ" Version="7.8.0" />
+    <PackageReference Include="MediatR" Version="13.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.9" />
+    <PackageReference Include="MNX.Application.Bus.RabbitMQ" Version="1.0.10" />
+    <PackageReference Include="MNX.Application.Data.EF.DI" Version="1.0.3" />
+    <PackageReference Include="MNX.SecurityManagement.Authentication.Clients" Version="1.2.2" />
+    <PackageReference Include="MNX.SecurityManagement.Licensing.Contracts" Version="1.0.2" />
+    <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.15.0" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.15.0" />
+    <PackageReference Include="Quartz.Serialization.Json" Version="3.15.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MNX.SubscriptionManagement.Application\MNX.SubscriptionManagement.Application.csproj" />
+    <ProjectReference Include="..\MNX.SubscriptionManagement.Domain\MNX.SubscriptionManagement.Domain.csproj" />
+    <ProjectReference Include="..\MNX.SubscriptionManagement.Infrastructure.Bus.Contracts\MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

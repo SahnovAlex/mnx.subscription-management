@@ -1,0 +1,33 @@
+include:
+  - project: 'minux-organization/infrastructure-cicd'
+    ref: v2.1
+    file: '/Templates/dotnet/app.yml'
+  - project: 'minux-organization/infrastructure-cicd'
+    ref: v2.1
+    file: '/Templates/dotnet/db.yml'
+  - project: 'minux-organization/infrastructure-cicd'
+    ref: v2.1
+    file: '/Templates/dotnet/cleanup.yml'
+  - project: 'minux-organization/infrastructure-cicd'
+    ref: v2.1
+    file: '/Templates/dotnet/defaults.yml'
+  - project: 'minux-organization/infrastructure-cicd'
+    ref: v2.1
+    file: '/Templates/dotnet/stages.yml'
+  - project: 'minux-organization/infrastructure-cicd'
+    ref: v2.1
+    file: '/Templates/dotnet/templates.yml'
+  - project: 'minux-organization/infrastructure-cicd'
+    ref: v2.1
+    file: '/Templates/dotnet/variables.yml'
+  - project: 'minux-organization/infrastructure-cicd'
+    ref: v2.1
+    file: '/Templates/dotnet/workflow.yml'
+
+variables:
+  DOTNET_VERSION: "9.0"
+  DB_ENABLED: "false"
+  PACKAGES_ENABLED: "false"
+  APP_PUSH_ENABLED: "true"
+  APP_ACTIVE_TESTS_ENABLED: "false"
+  APP_ALL_TESTS_ENABLED: "false"

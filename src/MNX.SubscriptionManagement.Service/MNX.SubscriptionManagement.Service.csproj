@@ -12,7 +12,6 @@
     <PackageReference Include="MNX.Application.OpenTelemetry" Version="1.0.0" />
     <PackageReference Include="MNX.SecurityManagement.Authentication.Integration" Version="1.2.3" />
     <PackageReference Include="MNX.SecurityManagement.Authorization" Version="1.2.2" />
-    <PackageReference Include="NLog" Version="6.0.4" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="6.0.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
   </ItemGroup>

@@ -65,7 +65,7 @@ public class CreateSubscriptionCommandHandler : IRequestHandler<CreateSubscripti
         {
             return Result<Guid>.Conflict("The active subscription already exists");
         }
-
+        
         var tariffPlan = await _tariffPlanRepository.GetById(request.TariffId, cancellationToken);
         if (tariffPlan is null)
         {
@@ -94,7 +94,8 @@ public class CreateSubscriptionCommandHandler : IRequestHandler<CreateSubscripti
 
         await _subscriptionCreatedMessageProducer.Produce(request.UserId,
                                                           operation.Id,
-                                                          activationResult.Subscription.EndDateTime);
+                                                          activationResult.Subscription.EndDateTime,
+                                                          cancellationToken);
 
         return Result<Guid>.SuccessfullyCreated(activationResult.Subscription.Id);
     }

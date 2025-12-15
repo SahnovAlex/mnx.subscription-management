@@ -8,6 +8,9 @@
 
   <ItemGroup>
     <PackageReference Include="EasyNetQ" Version="7.8.0" />
+    <PackageReference Include="MassTransit" Version="8.5.7" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" Version="8.5.7" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.7" />
     <PackageReference Include="MediatR" Version="13.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
     <PackageReference Include="MNX.Application.Bus.RabbitMQ" Version="1.0.10" />
@@ -23,6 +26,7 @@
     <ProjectReference Include="..\MNX.SubscriptionManagement.Application\MNX.SubscriptionManagement.Application.csproj" />
     <ProjectReference Include="..\MNX.SubscriptionManagement.Domain\MNX.SubscriptionManagement.Domain.Core.csproj" />
     <ProjectReference Include="..\MNX.SubscriptionManagement.Infrastructure.Bus.Contracts\MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.csproj" />
+    <ProjectReference Include="..\MNX.SubscriptionManagement.Infrastructure.SagaStateMachine\MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.csproj" />
   </ItemGroup>
 
 </Project>

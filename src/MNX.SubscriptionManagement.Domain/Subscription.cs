@@ -44,7 +44,7 @@ public class Subscription
     public DateTimeOffset EndDateTime
     {
         get => _endDateTime;
-        init => _endDateTime = value;
+        private set => _endDateTime = value;
     }
 
     /// <summary>
@@ -76,11 +76,25 @@ public class Subscription
     public TariffId TariffPlanId { get; init; }
 
     /// <summary>
+    /// Тарифный план подписки.
+    /// </summary>
+    public TariffPlan? TariffPlan { get; init; }
+
+    /// <summary>
     /// Деактивировать подписку.
     /// </summary>
     public void Deactivate()
     {
-        _status = SubscriptionStatus.Inactive;
+        _status = SubscriptionStatus.Cancelled;
         _autoExtend = false;
+    }
+
+    /// <summary>
+    /// Прервать дату окончания действия подписки.
+    /// </summary>
+    public void InterruptSubscriptionPeriod()
+    {
+        // TODO: По идее, необходимо проверять, является ли тариф подписки постоплатным.
+        EndDateTime = DateTimeOffset.UtcNow;
     }
 }

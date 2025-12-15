@@ -7,5 +7,5 @@ public enum SubscriptionStatus
 {
     Active,
 
-    Inactive
+    Cancelled
 }

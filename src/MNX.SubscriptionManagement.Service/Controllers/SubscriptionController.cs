@@ -64,7 +64,9 @@ public class SubscriptionController : ControllerBase
             return BadRequest("Invalid tariff plan identifier");
 
         var userId = _clientAccessor.Id;
-        var result = await _mediator.Send(new CreateSubscriptionCommand(new UserId(userId), new TariffId(tariffPlanId)));
+        var result = await _mediator.Send(new CreateSubscriptionCommand(
+            new UserId(userId), new TariffId(tariffPlanId)));
+
         return result.ToActionResult();
     }
 }

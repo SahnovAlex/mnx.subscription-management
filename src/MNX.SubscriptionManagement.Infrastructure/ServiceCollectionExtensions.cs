@@ -1,16 +1,17 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using MassTransit;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using MNX.Application.Bus.RabbitMQ;
 using MNX.Application.Data.EF.DI;
 using MNX.SecurityManagement.Authentication.Clients;
 using MNX.SubscriptionManagement.Application.Service.Scheduler;
-using MNX.SubscriptionManagement.Domain.Interfaces.Producers;
 using MNX.SubscriptionManagement.Domain.Interfaces.Repositories;
-using MNX.SubscriptionManagement.Infrastructure.Bus.Consumers;
-using MNX.SubscriptionManagement.Infrastructure.Bus.Producers;
 using MNX.SubscriptionManagement.Infrastructure.DataBase;
 using MNX.SubscriptionManagement.Infrastructure.DataBase.Repositories;
 using MNX.SubscriptionManagement.Infrastructure.External;
+using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.DebtRecording;
+using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.LicenseExtension;
+using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.PostpaymentRenewal;
+using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.RenewalSubscription;
 using Quartz;
 
 namespace MNX.SubscriptionManagement.Infrastructure;
@@ -41,7 +42,7 @@ public static class ServiceCollectionExtensions
 
         services.AddDataContext<Context>(configuration);
 
-        services.AddEasyNetQ(configuration, typeof(SubscriptionExpiredMessageConsumer).Assembly);
+        services.AddMassTransit(configuration);
 
         return services;
     }
@@ -52,12 +53,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<ITariffPlanRepository, TariffPlanRepository>();
         services.AddScoped<IExternalPaymentRepository, ExternalPaymentRepository>();
-        services.AddScoped<ISubscriptionWithSagaRepository, SubscriptionWithSagaRepository>();
-
-        // Producers
-        services.AddScoped<ISubscriptionCreatedMessageProducer, SubscriptionCreatedMessageProducer>();
-        services.AddScoped<ILicenseExtendedMessageProducer, LicenseExtendedMessageProducer>();
-        services.AddScoped<ISubscriptionExpiredMessageProducer, SubscriptionExpiredMessageProducer>();
 
         return services;
     }
@@ -128,5 +123,73 @@ public static class ServiceCollectionExtensions
         };
 
         return options;
+    }
+
+    private static IServiceCollection AddMassTransit(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddMassTransit(x =>
+        {
+            x.AddEntityFrameworkOutbox<Context>(x =>
+            {
+                x.UsePostgres();
+                x.QueryDelay = TimeSpan.FromSeconds(1);
+                x.UseBusOutbox();
+            });
+
+            x.AddSagaStateMachine<DebtRecordingStateMachine, DebtRecordingOperationState>()
+                .EntityFrameworkRepository(x =>
+                {
+                    x.ExistingDbContext<Context>();
+                    x.ConcurrencyMode = ConcurrencyMode.Optimistic;
+                });
+
+            x.AddSagaStateMachine<LicenseExtensionStateMachine, LicenseExtensionOperationState>()
+                .EntityFrameworkRepository(x =>
+                {
+                    x.ExistingDbContext<Context>();
+                    x.ConcurrencyMode = ConcurrencyMode.Optimistic;
+                });
+
+            x.AddSagaStateMachine<PostpaymentDebtRecordingStateMachine, PostpaymentDebtRecordingOperationState>()
+                .EntityFrameworkRepository(x =>
+                {
+                    x.ExistingDbContext<Context>();
+                    x.ConcurrencyMode = ConcurrencyMode.Optimistic;
+                });
+
+            x.AddSagaStateMachine<RenewalSubscriptionStateMachine, RenewalSubscriptionOperationState>()
+                .EntityFrameworkRepository(x =>
+                {
+                    x.ExistingDbContext<Context>();
+                    x.ConcurrencyMode = ConcurrencyMode.Optimistic;
+                });
+
+            x.AddConfigureEndpointsCallback((context, name, configs) =>
+            {
+                configs.UseEntityFrameworkOutbox<Context>(context);
+            });
+
+            x.UsingRabbitMq((context, configs) =>
+            {
+                configs.Host(configuration["RabbitMq:Host"], x =>
+                {
+                    x.Username(configuration["RabbitMQ:User"]!);
+                    x.Password(configuration["RabbitMQ:Password"]!);
+                });
+
+                configs.UseMessageRetry(x =>
+                {
+                    x.Exponential(
+                        retryLimit: 5,
+                        minInterval: TimeSpan.FromSeconds(1),
+                        maxInterval: TimeSpan.FromSeconds(30),
+                        intervalDelta: TimeSpan.FromSeconds(5));
+                });
+
+                configs.ConfigureEndpoints(context);
+            });
+        });
+
+        return services;
     }
 }

@@ -19,18 +19,22 @@ public class SubscriptionRepository : ISubscriptionRepository
     }
 
     /// <inheritdoc/>
-    public Task<Subscription?> GetById(SubscriptionId id, UserId userId, CancellationToken cancellationToken = default)
+    public Task<Subscription?> GetById(
+        SubscriptionId id,
+        UserId userId,
+        CancellationToken cancellationToken = default)
     {
         return _context.Subscriptions.AsNoTracking()
-                                     .Where(x => x.UserId == userId)
-                                     .FirstOrDefaultAsync(x => x.Id == id, cancellationToken: cancellationToken);
+                       .Include(x => x.TariffPlan)
+                       .Where(x => x.UserId == userId)
+                       .FirstOrDefaultAsync(x => x.Id == id, cancellationToken: cancellationToken);
     }
 
     /// <inheritdoc/>
     public Task<Subscription?> GetCurrent(UserId userId, CancellationToken cancellationToken = default)
     {
-        return _context.Subscriptions
-                       .AsNoTracking()
+        return _context.Subscriptions.AsNoTracking()
+                       .Include(x => x.TariffPlan)
                        .Where(x => x.UserId == userId)
                        .FirstOrDefaultAsync(x => x.Status == SubscriptionStatus.Active, cancellationToken: cancellationToken);
     }

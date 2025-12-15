@@ -1,8 +1,5 @@
-﻿using MNX.SubscriptionManagement.Domain.Core;
-using MNX.SubscriptionManagement.Domain.Core.Enums;
+﻿using MassTransit;
 using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
-using MNX.SubscriptionManagement.Domain.Interfaces.Producers;
-using MNX.SubscriptionManagement.Domain.Interfaces.Repositories;
 using Quartz;
 
 namespace MNX.SubscriptionManagement.Application.Service.Scheduler;
@@ -12,20 +9,17 @@ namespace MNX.SubscriptionManagement.Application.Service.Scheduler;
 /// </summary>
 public class SubscriptionExpiredJob : IJob
 {
-    private readonly ISubscriptionExpiredMessageProducer _producer;
-    private readonly ISagaStatusesRepository _sagaStatusesRepository;
+    private readonly IPublishEndpoint _publishEndpoint;
 
     /// <summary>
     /// Ключ задачи.
     /// </summary>
     public static JobKey Key { get; } = new JobKey(nameof(SubscriptionExpiredJob));
 
-    public SubscriptionExpiredJob(ISubscriptionExpiredMessageProducer producer,
-                                    ISagaStatusesRepository sagaStatusesRepository)
+    public SubscriptionExpiredJob(IPublishEndpoint publishEndpoint)
     {
-        _producer = producer ?? throw new ArgumentNullException(nameof(producer));
-        _sagaStatusesRepository = sagaStatusesRepository ??
-            throw new ArgumentNullException(nameof(sagaStatusesRepository));
+        _publishEndpoint = publishEndpoint ??
+            throw new ArgumentNullException(nameof(publishEndpoint));
     }
 
     /// <inheritdoc/>
@@ -37,13 +31,9 @@ public class SubscriptionExpiredJob : IJob
         var userIdValue = context.JobDetail.JobDataMap.GetGuidValue("userId");
         var userId = new UserId(userIdValue);
 
-        var operation = new SagaOperation()
-        {
-            Id = new OperationId(),
-            Status = OperationStatus.SubscriptionExpired
-        };
-        await _sagaStatusesRepository.Add(operation);
-
-        await _producer.Produce(userId, operation.Id, subscriptionId);
+        var operationId = new OperationId();
+        
+        // TODO: Реализация обработки окончания срока действия подписки.
+        //await _publishEndpoint.Publish(new SubscriptionExpired(operationId, subscriptionId, userId));
     }
 }

@@ -1,18 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Company>Minux</Company>
-		<Authors>SahnovAlex</Authors>
-		<Description>Содержит контракты взаимодействия через брокер сообщений.</Description>
-		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-		<IncludeSymbols>True</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-		<RepositoryUrl>https://github.com/MINUX-organization/mnx-subscriptionmanagement</RepositoryUrl>
-		<Version>1.0.5</Version>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
 
 </Project>

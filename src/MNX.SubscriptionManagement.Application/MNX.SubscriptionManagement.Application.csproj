@@ -7,11 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MassTransit" Version="8.5.7" />
     <PackageReference Include="MNX.Application.UseCases.DI" Version="1.0.2" />
     <PackageReference Include="Quartz" Version="3.15.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\MNX.SubscriptionManagement.Domain.Interfaces\MNX.SubscriptionManagement.Domain.Interfaces.csproj" />
     <ProjectReference Include="..\MNX.SubscriptionManagement.Domain\MNX.SubscriptionManagement.Domain.Core.csproj" />
   </ItemGroup>
 

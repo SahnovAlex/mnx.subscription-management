@@ -26,6 +26,14 @@ public class PaymentScheduler : IPaymentScheduler
     }
 
     /// <inheritdoc/>
+    public async Task<bool> Exists(SubscriptionId subscriptionId, CancellationToken cancellationToken = default)
+    {
+        var triggerKey = new TriggerKey(subscriptionId.ToString(), GROUP_ID);
+        var scheduler = await _schedulerFactory.GetScheduler(cancellationToken);
+        return await scheduler.CheckExists(triggerKey, cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public async Task AddSchedule(UserId userId, SubscriptionId subscriptionId, CancellationToken cancellationToken = default)
     {
         try
@@ -42,7 +50,7 @@ public class PaymentScheduler : IPaymentScheduler
                 .WithCalendarIntervalSchedule(x => x.WithIntervalInMonths(1))
                 .Build();
 
-            var scheduler = await _schedulerFactory.GetScheduler();
+            var scheduler = await _schedulerFactory.GetScheduler(cancellationToken);
             await scheduler.ScheduleJob(job, trigger, cancellationToken);
         }
         catch(Exception ex)

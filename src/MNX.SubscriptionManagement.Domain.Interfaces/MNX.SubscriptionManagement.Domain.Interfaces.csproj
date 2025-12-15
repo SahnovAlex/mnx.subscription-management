@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\MNX.SubscriptionManagement.Domain\MNX.SubscriptionManagement.Domain.Core.csproj" />
+  </ItemGroup>
+
 </Project>

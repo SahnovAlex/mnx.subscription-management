@@ -7,7 +7,7 @@ CREATE TABLE subscription_management.subscriptions
     validity_period bigint NOT NULL,
     auto_extend boolean NOT NULL,
     tariff_plan_id uuid NOT NULL,
-    status text CHECK (status in ( 'Active', 'Inactive' ) ) NOT NULL,
+    status text CHECK (status in ( 'Active', 'Cancelled' ) ) NOT NULL,
 
     CONSTRAINT pk_subscriptions PRIMARY KEY (id),
 

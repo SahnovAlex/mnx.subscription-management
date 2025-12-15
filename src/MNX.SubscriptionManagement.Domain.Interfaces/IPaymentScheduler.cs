@@ -7,6 +7,8 @@ namespace MNX.SubscriptionManagement.Domain.Interfaces;
 /// </summary>
 public interface IPaymentScheduler
 {
+    Task<bool> Exists(SubscriptionId subscriptionId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Добавить расписание.
     /// </summary>

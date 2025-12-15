@@ -1,71 +1,52 @@
-﻿using MediatR;
+﻿using MassTransit;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using MNX.Application.UseCases.CommandValidation;
 using MNX.Application.UseCases.Results;
+using MNX.SubscriptionManagement.Application.SagaInitiation;
 using MNX.SubscriptionManagement.Domain.Core;
 using MNX.SubscriptionManagement.Domain.Core.Enums;
 using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
-using MNX.SubscriptionManagement.Domain.Interfaces.Producers;
 using MNX.SubscriptionManagement.Domain.Interfaces.Repositories;
-using MNX.SubscriptionManagement.Domain.Interfaces.SubscriptionService;
 
 namespace MNX.SubscriptionManagement.Application.UseCases.Subscription.Commands;
 
-/// <summary>
-/// Команда на создание подписки.
-/// </summary>
-/// <param name="UserId"> Идентификатор пользователя. </param>
-/// <param name="TariffId"> Идентификатор тарифного плана. </param>
-public sealed record CreateSubscriptionCommand(UserId UserId, TariffId TariffId, CancellationToken cancellationToken = default)
+public sealed record CreateSubscriptionCommand(UserId UserId, TariffId TariffId, CancellationToken CancellationToken = default)
     : IValidatableCommand<Guid>;
 
-
-/// <summary>
-/// Обработчик <see cref="CreateSubscriptionCommand"/>.
-/// </summary>
-public class CreateSubscriptionCommandHandler : IRequestHandler<CreateSubscriptionCommand, Result<Guid>>
+public sealed class CreateSubscriptionHandler : IRequestHandler<CreateSubscriptionCommand, Result<Guid>>
 {
     private readonly ISubscriptionRepository _subscriptionRepository;
-    private readonly ISubscriptionStrategyFactory _subscriptionStrategyFactory;
-    private readonly ISubscriptionCreatedMessageProducer _subscriptionCreatedMessageProducer;
     private readonly ITariffPlanRepository _tariffPlanRepository;
-    private readonly ISagaStatusesRepository _sagaStatusesRepository;
-    private readonly ILogger<CreateSubscriptionCommandHandler> _logger;
+    private readonly IExternalPaymentRepository _externalPaymentRepository;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    ///
-    public CreateSubscriptionCommandHandler(ISubscriptionRepository subscriptionRepository,
-                                            ISubscriptionStrategyFactory subscriptionStrategyFactory,
-                                            ISubscriptionCreatedMessageProducer producer,
-                                            ITariffPlanRepository tariffPlanRepository,
-                                            ISagaStatusesRepository sagaStatusesRepository,
-                                            ILogger<CreateSubscriptionCommandHandler> logger)
+    public CreateSubscriptionHandler(ISubscriptionRepository subscriptionRepository,
+                                     ITariffPlanRepository tariffPlanRepository,
+                                     IExternalPaymentRepository externalPaymentRepository,
+                                     IPublishEndpoint publishEndpoint,
+                                     ILogger<CreateSubscriptionHandler> logger)
     {
         _subscriptionRepository = subscriptionRepository ??
             throw new ArgumentNullException(nameof(subscriptionRepository));
-        _subscriptionStrategyFactory = subscriptionStrategyFactory ??
-            throw new ArgumentNullException(nameof(subscriptionStrategyFactory));
-        _subscriptionCreatedMessageProducer = producer ??
-            throw new ArgumentNullException(nameof(producer));
         _tariffPlanRepository = tariffPlanRepository ??
             throw new ArgumentNullException(nameof(tariffPlanRepository));
-        _sagaStatusesRepository = sagaStatusesRepository ??
-            throw new ArgumentNullException(nameof(sagaStatusesRepository));
-        _logger = logger ??
-            throw new ArgumentNullException(nameof(logger));
+        _externalPaymentRepository = externalPaymentRepository ??
+            throw new ArgumentNullException(nameof(externalPaymentRepository));
+        _publishEndpoint = publishEndpoint ??
+            throw new ArgumentNullException(nameof(publishEndpoint));
     }
 
-    ///
     public async Task<Result<Guid>> Handle(CreateSubscriptionCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Попытка получения текущей подписки пользователя с идентификатором {userId}",
-                               request.UserId.ToString());
+        var operationId = new OperationId(Guid.NewGuid());
 
         var currentSubscription = await _subscriptionRepository.GetCurrent(request.UserId, cancellationToken);
         if (currentSubscription is not null)
         {
             return Result<Guid>.Conflict("The active subscription already exists");
         }
-        
+
         var tariffPlan = await _tariffPlanRepository.GetById(request.TariffId, cancellationToken);
         if (tariffPlan is null)
         {
@@ -73,47 +54,31 @@ public class CreateSubscriptionCommandHandler : IRequestHandler<CreateSubscripti
             return Result<Guid>.Invalid($"Tariff plan with id {tariffId} does not exists");
         }
 
-        var subscriptionStrategyFactoryActivator =
-            _subscriptionStrategyFactory.GetStrategyFamily(tariffPlan.PaymentStrategy).Activator;
+        var freezeResult = await _externalPaymentRepository.TryFreeze(
+            operationId, request.UserId, GetTariffPriceForFreezing(tariffPlan), cancellationToken);
 
-        var operation = await InitiateSagaOperation(cancellationToken);
+        if (!freezeResult)
+            return Result<Guid>.Invalid("Failed to subscribe due to wallet issues");
 
-        var activationResult = await subscriptionStrategyFactoryActivator.ProcessAsync(operation.Id,
-                                                                                       request.UserId,
-                                                                                       tariffPlan,
-                                                                                       cancellationToken);
-        if (!activationResult.Result || activationResult.Subscription is null)
+        var subscription = new Domain.Core.Subscription(request.UserId, request.TariffId);
+
+        await _subscriptionRepository.Create(subscription, cancellationToken);
+
+        if (tariffPlan.PaymentStrategy == PaymentStrategyType.Prepayment)
         {
-            var reason = "The subscription was not activated";
-            operation.Status = OperationStatus.Fail;
-            operation.Reason = reason;
-
-            await _sagaStatusesRepository.Update(operation, cancellationToken);
-            return Result<Guid>.Error(reason);
+            var command = new RenewalSubscriptionInitiated(
+                operationId, request.UserId, subscription.EndDateTime, tariffPlan.Price);
+            await _publishEndpoint.Publish(command, cancellationToken);
+        }
+        if (tariffPlan.PaymentStrategy == PaymentStrategyType.Postpayment)
+        {
+            var command = new LicenseExtensionInitiated(operationId, request.UserId, subscription.EndDateTime);
+            await _publishEndpoint.Publish(command, cancellationToken);
         }
 
-        await _subscriptionCreatedMessageProducer.Produce(request.UserId,
-                                                          operation.Id,
-                                                          activationResult.Subscription.EndDateTime,
-                                                          cancellationToken);
-
-        return Result<Guid>.SuccessfullyCreated(activationResult.Subscription.Id);
+        return Result<Guid>.SuccessfullyCreated(subscription.Id);
     }
 
-    private async Task<SagaOperation> InitiateSagaOperation(CancellationToken cancellationToken)
-    {
-        var operationId = new OperationId();
-
-        _logger.LogInformation("Инициализация операции саги по созданию подписки. Идентификатор операции - {operationId}",
-                               operationId.ToString());
-
-        var operation = new SagaOperation()
-        {
-            Id = operationId,
-            Status = OperationStatus.LicenseExtending
-        };
-        await _sagaStatusesRepository.Add(operation, cancellationToken);
-
-        return operation;
-    }
+    private static float GetTariffPriceForFreezing(TariffPlan tariffPlan)
+        => tariffPlan.PaymentStrategy == PaymentStrategyType.Prepayment ? tariffPlan.Price : 0.0F;
 }

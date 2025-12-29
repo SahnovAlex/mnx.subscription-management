@@ -2,7 +2,7 @@
 using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
 using Quartz;
 
-namespace MNX.SubscriptionManagement.Application.Service.Scheduler;
+namespace MNX.SubscriptionManagement.Application.Scheduler;
 
 /// <summary>
 /// Задание на истечение срока действия подписки.

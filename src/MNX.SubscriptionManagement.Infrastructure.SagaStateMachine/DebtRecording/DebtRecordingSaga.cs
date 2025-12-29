@@ -1,12 +1,12 @@
 ﻿using MassTransit;
 using MNX.SubscriptionManagement.Application.SagaInitiation;
 using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
-using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Events;
 using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Payment;
+using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.DebtRecording.Events;
 
 namespace MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.DebtRecording;
 
-public sealed class DebtRecordingStateMachine : MassTransitStateMachine<DebtRecordingOperationState>
+public sealed class DebtRecordingSaga : MassTransitStateMachine<DebtRecordingSagaState>
 {
     public State DebtRecording { get; private set; }
     public State Completed { get; private set; }
@@ -16,7 +16,7 @@ public sealed class DebtRecordingStateMachine : MassTransitStateMachine<DebtReco
     public Event<SuccessfullyWrittenOffMessage> SuccessfullyDebtRecorded { get; private set; }
     public Event<UnsuccessfullyWrittenOffMessage> UnsuccessfullyDebtRecorded { get; private set; }
 
-    public DebtRecordingStateMachine()
+    public DebtRecordingSaga()
     {
         InstanceState(x => x.CurrentState);
 
@@ -40,7 +40,7 @@ public sealed class DebtRecordingStateMachine : MassTransitStateMachine<DebtReco
         );
 
         During(DebtRecording, When(SuccessfullyDebtRecorded)
-            .Publish(context => new DebtRecordedEventMessage(
+            .Publish(context => new DebtRecordedEvent(
                 context.Saga.SubscriptionId,
                 context.Saga.UserId))
             .TransitionTo(Completed)
@@ -53,12 +53,11 @@ public sealed class DebtRecordingStateMachine : MassTransitStateMachine<DebtReco
                     context.Saga.Amount,
                     IsForced: true)
                 ).TransitionTo(DebtRecording),
-                x => x.Publish(context => new DebtRecordingRequiresAttention(
+                x => x.Publish(context => new DebtRecordingFailed(
                         context.Saga.CorrelationId,
                         context.Saga.CreatedAt,
-                        Reason: "Debt recording failed 3 times"
-                    ))
-            .TransitionTo(Failed)
+                        Reason: "Debt recording failed 3 times")
+                ).TransitionTo(Failed)
             .Finalize())
         );
     }

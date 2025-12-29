@@ -3,11 +3,11 @@ using MNX.SecurityManagement.Licensing.Contracts;
 using MNX.SubscriptionManagement.Application.SagaInitiation;
 using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
 using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Security;
-using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Events;
+using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.LicenseExtension.Events;
 
 namespace MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.LicenseExtension;
 
-public sealed class LicenseExtensionStateMachine : MassTransitStateMachine<LicenseExtensionOperationState>
+public sealed class LicenseExtensionSaga : MassTransitStateMachine<LicenseExtensionSagaState>
 {
     public State LicenseExtending { get; private set; }
     public State Completed { get; private set; }
@@ -17,7 +17,7 @@ public sealed class LicenseExtensionStateMachine : MassTransitStateMachine<Licen
     public Event<SuccessfullyLicenseExtendedMessage> LicenseExtended { get; private set; }
     public Event<UnsuccessfullyLicenseExtendedMessage> LicenseExtensionFailed { get; private set; }
 
-    public LicenseExtensionStateMachine()
+    public LicenseExtensionSaga()
     {
         InstanceState(x => x.CurrentState);
 
@@ -42,14 +42,14 @@ public sealed class LicenseExtensionStateMachine : MassTransitStateMachine<Licen
         );
 
         During(LicenseExtending, When(LicenseExtended)
-            .Publish(context => new LicenseExtendedEventMessage(
+            .Publish(context => new LicenseExtendedEvent(
                 context.Saga.SubscriptionId,
                 context.Saga.UserId,
                 context.Saga.ExpirationDate
             )).TransitionTo(Completed)
             .Finalize(),
             When(LicenseExtensionFailed)
-            .Publish(context => new LicenseExtensionFailedEventMessage(
+            .Publish(context => new LicenseExtensionFailedEvent(
                 context.Saga.SubscriptionId,
                 context.Saga.UserId
             )).TransitionTo(Failed)

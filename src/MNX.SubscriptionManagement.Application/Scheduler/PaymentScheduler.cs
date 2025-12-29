@@ -3,7 +3,7 @@ using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
 using MNX.SubscriptionManagement.Domain.Interfaces;
 using Quartz;
 
-namespace MNX.SubscriptionManagement.Application.Service.Scheduler;
+namespace MNX.SubscriptionManagement.Application.Scheduler;
 
 /// <summary>
 /// Реализация <see cref="IPaymentScheduler"/>.

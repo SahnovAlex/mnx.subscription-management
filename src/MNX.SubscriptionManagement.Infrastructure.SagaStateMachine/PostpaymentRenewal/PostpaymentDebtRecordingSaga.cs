@@ -2,13 +2,13 @@
 using MNX.SubscriptionManagement.Application.SagaInitiation;
 using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
 using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts;
-using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Events;
 using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Payment;
 using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Security;
+using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.PostpaymentRenewal.Events;
 
 namespace MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.PostpaymentRenewal;
 
-public sealed class PostpaymentDebtRecordingStateMachine : MassTransitStateMachine<PostpaymentDebtRecordingOperationState>
+public sealed class PostpaymentDebtRecordingSaga : MassTransitStateMachine<PostpaymentDebtRecordingSagaState>
 {
     public State ObtainingAgentSessions { get; private set; }
     public State DebtCalculating { get; private set; }
@@ -26,7 +26,7 @@ public sealed class PostpaymentDebtRecordingStateMachine : MassTransitStateMachi
     public Event<SuccessfullyWrittenOffMessage> SuccessfullyDebtRecorded { get; private set; }
     public Event<UnsuccessfullyWrittenOffMessage> UnsuccessfullyDebtRecorded { get; private set; }
 
-    public PostpaymentDebtRecordingStateMachine()
+    public PostpaymentDebtRecordingSaga()
     {
         InstanceState(x => x.CurrentState);
 
@@ -56,7 +56,7 @@ public sealed class PostpaymentDebtRecordingStateMachine : MassTransitStateMachi
         ));
 
         During(ObtainingAgentSessions, When(SessionsObtained)
-            .Publish(context => new SessionsObtainedEventMessage(
+            .Publish(context => new SessionsObtainedEvent(
                 new OperationId(context.Saga.CorrelationId),
                 context.Saga.SubscriptionId,
                 context.Saga.UserId,
@@ -72,7 +72,7 @@ public sealed class PostpaymentDebtRecordingStateMachine : MassTransitStateMachi
                     context.Saga.StartDateTime,
                     context.Saga.EndDateTime)
                 ).TransitionTo(ObtainingAgentSessions),
-                x => x.Publish(context => new ObtainingAgentSessionsRequiresAttention(
+                x => x.Publish(context => new ObtainingAgentSessionsFailed(
                         context.Saga.CorrelationId,
                         context.Saga.CreatedAt,
                         Reason: "Agent sessions obtaining failed 3 times")
@@ -91,12 +91,12 @@ public sealed class PostpaymentDebtRecordingStateMachine : MassTransitStateMachi
         );
 
         During(DebtRecording, When(SuccessfullyDebtRecorded)
-            .Publish(context => new DebtRecordedEventMessage(
+            .Publish(context => new PostpaymentDebtRecordedEvent(
                 context.Saga.SubscriptionId,
                 context.Saga.UserId
             )).TransitionTo(Completed)
             .Finalize(), When(UnsuccessfullyDebtRecorded)
-            .Publish(context => new InitiateDebtRecordingCommand(
+            .Publish(context => new PostpaymentDebtRecordingFailedEvent(
                 new OperationId(Guid.NewGuid()),
                 context.Saga.UserId,
                 context.Saga.Amount,

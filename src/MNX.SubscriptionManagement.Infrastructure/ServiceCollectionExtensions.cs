@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MNX.Application.Data.EF.DI;
 using MNX.SecurityManagement.Authentication.Clients;
-using MNX.SubscriptionManagement.Application.Service.Scheduler;
+using MNX.SubscriptionManagement.Application.Scheduler;
 using MNX.SubscriptionManagement.Domain.Interfaces.Repositories;
 using MNX.SubscriptionManagement.Infrastructure.DataBase;
 using MNX.SubscriptionManagement.Infrastructure.DataBase.Repositories;
@@ -11,7 +11,7 @@ using MNX.SubscriptionManagement.Infrastructure.External;
 using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.DebtRecording;
 using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.LicenseExtension;
 using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.PostpaymentRenewal;
-using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.RenewalSubscription;
+using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.PrepaymentRenewal;
 using Quartz;
 
 namespace MNX.SubscriptionManagement.Infrastructure;
@@ -136,28 +136,28 @@ public static class ServiceCollectionExtensions
                 x.UseBusOutbox();
             });
 
-            x.AddSagaStateMachine<DebtRecordingStateMachine, DebtRecordingOperationState>()
+            x.AddSagaStateMachine<DebtRecordingSaga, DebtRecordingSagaState>()
                 .EntityFrameworkRepository(x =>
                 {
                     x.ExistingDbContext<Context>();
                     x.ConcurrencyMode = ConcurrencyMode.Optimistic;
                 });
 
-            x.AddSagaStateMachine<LicenseExtensionStateMachine, LicenseExtensionOperationState>()
+            x.AddSagaStateMachine<LicenseExtensionSaga, LicenseExtensionSagaState>()
                 .EntityFrameworkRepository(x =>
                 {
                     x.ExistingDbContext<Context>();
                     x.ConcurrencyMode = ConcurrencyMode.Optimistic;
                 });
 
-            x.AddSagaStateMachine<PostpaymentDebtRecordingStateMachine, PostpaymentDebtRecordingOperationState>()
+            x.AddSagaStateMachine<PostpaymentDebtRecordingSaga, PostpaymentDebtRecordingSagaState>()
                 .EntityFrameworkRepository(x =>
                 {
                     x.ExistingDbContext<Context>();
                     x.ConcurrencyMode = ConcurrencyMode.Optimistic;
                 });
 
-            x.AddSagaStateMachine<RenewalSubscriptionStateMachine, RenewalSubscriptionOperationState>()
+            x.AddSagaStateMachine<PrepaymentSubscriptionRenewalSaga, PrepaymentSubscriptionRenewalSagaState>()
                 .EntityFrameworkRepository(x =>
                 {
                     x.ExistingDbContext<Context>();

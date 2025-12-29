@@ -2,14 +2,13 @@
 using MNX.SecurityManagement.Licensing.Contracts;
 using MNX.SubscriptionManagement.Application.SagaInitiation;
 using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
-using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts;
-using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Events;
 using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Payment;
 using MNX.SubscriptionManagement.Infrastructure.Bus.Contracts.Security;
+using MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.PrepaymentRenewal.Events;
 
-namespace MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.RenewalSubscription;
+namespace MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.PrepaymentRenewal;
 
-public sealed class RenewalSubscriptionStateMachine : MassTransitStateMachine<RenewalSubscriptionOperationState>
+public sealed class PrepaymentSubscriptionRenewalSaga : MassTransitStateMachine<PrepaymentSubscriptionRenewalSagaState>
 {
     public State LicenseExtending { get; private set; }
     public State DebtRecording { get; private set; }
@@ -20,10 +19,10 @@ public sealed class RenewalSubscriptionStateMachine : MassTransitStateMachine<Re
     public Event<SuccessfullyLicenseExtendedMessage> LicenseExtended { get; private set; }
     public Event<UnsuccessfullyLicenseExtendedMessage> LicenseExtensionFailed { get; private set; }
 
-    public Event<SuccessfullyWrittenOffMessage> PaymentSucceeded { get; private set; }
-    public Event<UnsuccessfullyWrittenOffMessage> PaymentFailed { get; private set; }
+    public Event<SuccessfullyWrittenOffMessage> SuccessfullyDebtRecorded { get; private set; }
+    public Event<UnsuccessfullyWrittenOffMessage> UnsuccessfullyDebtRecorded { get; private set; }
 
-    public RenewalSubscriptionStateMachine()
+    public PrepaymentSubscriptionRenewalSaga()
     {
         InstanceState(x => x.CurrentState);
 
@@ -34,8 +33,8 @@ public sealed class RenewalSubscriptionStateMachine : MassTransitStateMachine<Re
         });
         Event(() => LicenseExtended, x => x.CorrelateById(x => x.Message.OperationId));
         Event(() => LicenseExtensionFailed, x => x.CorrelateById(x => x.Message.OperationId));
-        Event(() => PaymentSucceeded, x => x.CorrelateById(x => x.Message.OperationId));
-        Event(() => PaymentFailed, x => x.CorrelateById(x => x.Message.OperationId));
+        Event(() => SuccessfullyDebtRecorded, x => x.CorrelateById(x => x.Message.OperationId));
+        Event(() => UnsuccessfullyDebtRecorded, x => x.CorrelateById(x => x.Message.OperationId));
 
         Initially(When(StartSaga).Then(context =>
         {
@@ -55,7 +54,7 @@ public sealed class RenewalSubscriptionStateMachine : MassTransitStateMachine<Re
                 IsForced: true
             )).TransitionTo(DebtRecording),
         When(LicenseExtensionFailed)
-            .Publish(context => new DeleteSubscriptionCommand(
+            .Publish(context => new PrepaymentLicenseExtensionFailedEvent(
                 context.Saga.SubscriptionId,
                 context.Saga.UserId
             ))
@@ -63,13 +62,13 @@ public sealed class RenewalSubscriptionStateMachine : MassTransitStateMachine<Re
             .Finalize()
         );
 
-        During(DebtRecording, When(PaymentSucceeded)
-            .Publish(context => new DebtRecordedEventMessage(
+        During(DebtRecording, When(SuccessfullyDebtRecorded)
+            .Publish(context => new PrepaymentDebtRecordedEvent(
                 context.Saga.SubscriptionId,
                 context.Saga.UserId
             )).TransitionTo(Completed)
-            .Finalize(), When(PaymentFailed)
-            .Publish(context => new InitiateDebtRecordingCommand(
+            .Finalize(), When(UnsuccessfullyDebtRecorded)
+            .Publish(context => new PrepaymentDebtRecordingFailedEvent(
                 new OperationId(Guid.NewGuid()),
                 context.Saga.UserId,
                 context.Saga.Amount,

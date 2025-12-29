@@ -1,15 +1,19 @@
 ﻿using MassTransit;
 using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
 
-namespace MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.DebtRecording;
+namespace MNX.SubscriptionManagement.Infrastructure.SagaStateMachine.PostpaymentRenewal;
 
-public class DebtRecordingOperationState : SagaStateMachineInstance
+public sealed class PostpaymentDebtRecordingSagaState : SagaStateMachineInstance
 {
     public Guid CorrelationId { get; set; }
     public string CurrentState { get; set; } = null!;
+
     public SubscriptionId SubscriptionId { get; set; }
     public UserId UserId { get; set; }
-    public DateTimeOffset CreatedAt { get; init; } = DateTime.Now;
     public float Amount { get; set; }
+    public DateTimeOffset StartDateTime { get; set; }
+    public DateTimeOffset EndDateTime { get; set; }
+
+    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
     public int Retries { get; set; } = 0;
 }

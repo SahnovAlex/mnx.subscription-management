@@ -4,7 +4,7 @@ using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
 using MNX.SubscriptionManagement.Domain.Interfaces;
 using MNX.SubscriptionManagement.Domain.Interfaces.Repositories;
 
-namespace MNX.SubscriptionManagement.Application.Events;
+namespace MNX.SubscriptionManagement.Application.UseCases.Subscription.Events;
 
 public sealed record DeleteSubscriptionEvent(
     SubscriptionId SubscriptionId,

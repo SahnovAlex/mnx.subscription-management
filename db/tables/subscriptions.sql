@@ -4,7 +4,7 @@ CREATE TABLE subscription_management.subscriptions
     user_id uuid NOT NULL,
     start_date_time timestamp with time zone NOT NULL,
     end_date_time timestamp with time zone NOT NULL,
-    validity_period bigint NOT NULL,
+    subscription_period bigint NOT NULL,
     auto_extend boolean NOT NULL,
     tariff_plan_id uuid NOT NULL,
     status text CHECK (status in ( 'Active', 'Cancelled' ) ) NOT NULL,

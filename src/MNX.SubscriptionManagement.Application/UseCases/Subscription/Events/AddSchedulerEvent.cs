@@ -4,19 +4,19 @@ using MNX.SubscriptionManagement.Domain.Core.ValueObjects;
 using MNX.SubscriptionManagement.Domain.Interfaces;
 using MNX.SubscriptionManagement.Domain.Interfaces.Repositories;
 
-namespace MNX.SubscriptionManagement.Application.Events;
+namespace MNX.SubscriptionManagement.Application.UseCases.Subscription.Events;
 
-public sealed record ScheduleSubscriptionRenewalEvent(SubscriptionId SubscriptionId, UserId UserId) : INotification;
+public sealed record AddSchedulerEvent(SubscriptionId SubscriptionId, UserId UserId) : INotification;
 
-public sealed class ScheduleSubscriptionRenewalEventHandler : INotificationHandler<ScheduleSubscriptionRenewalEvent>
+public sealed class AddSchedulerEventEventHandler : INotificationHandler<AddSchedulerEvent>
 {
     private readonly IPaymentScheduler _paymentScheduler;
     private readonly ISubscriptionRepository _subscriptionRepository;
-    private readonly ILogger<ScheduleSubscriptionRenewalEventHandler> _logger;
+    private readonly ILogger<AddSchedulerEventEventHandler> _logger;
 
-    public ScheduleSubscriptionRenewalEventHandler(IPaymentScheduler paymentScheduler,
-                                       ISubscriptionRepository subscriptionRepository,
-                                       ILogger<ScheduleSubscriptionRenewalEventHandler> logger)
+    public AddSchedulerEventEventHandler(IPaymentScheduler paymentScheduler,
+                                         ISubscriptionRepository subscriptionRepository,
+                                         ILogger<AddSchedulerEventEventHandler> logger)
     {
         _paymentScheduler = paymentScheduler ??
             throw new ArgumentNullException(nameof(paymentScheduler));
@@ -25,7 +25,7 @@ public sealed class ScheduleSubscriptionRenewalEventHandler : INotificationHandl
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task Handle(ScheduleSubscriptionRenewalEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(AddSchedulerEvent notification, CancellationToken cancellationToken)
     {
         var subscription = await _subscriptionRepository.GetById(
             notification.SubscriptionId, notification.UserId, cancellationToken);
